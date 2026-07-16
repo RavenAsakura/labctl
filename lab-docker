@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+case "$1" in
+    start)
+        sudo systemctl start docker
+        systemctl --no-pager --quiet is-active docker &&
+            echo "[+] Docker activo"
+        ;;
+    stop)
+        sudo systemctl stop docker docker.socket containerd
+        echo "[-] Docker detenido"
+        ;;
+    status)
+        systemctl status docker containerd --no-pager
+        ;;
+    *)
+        echo "Uso: lab-docker {start|stop|status}"
+        exit 1
+        ;;
+esac

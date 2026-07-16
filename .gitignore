@@ -1,0 +1,17 @@
+# Backups
+backups/
+
+# Generated reports
+reports/*
+!reports/.gitkeep
+
+# Temporary files
+*.log
+*.tmp
+*.swp
+*~
+.DS_Store
+
+# Editor settings
+.vscode/
+.idea/

@@ -1,0 +1,297 @@
+#!/usr/bin/env bash
+
+set -u
+
+OK="[OK]"
+WARN="[WARNING]"
+FAIL="[ERROR]"
+INFO="[INFO]"
+
+line() {
+    printf '%*s\n' 62 '' | tr ' ' '='
+}
+
+service_state_health() {
+    if systemctl is-active --quiet "$1" 2>/dev/null; then
+        echo "ACTIVE"
+    else
+        echo "STOPPED"
+    fi
+}
+
+temperature_status() {
+    local value="$1"
+    local warning="$2"
+    local critical="$3"
+
+    if (( value >= critical )); then
+        echo "$FAIL"
+    elif (( value >= warning )); then
+        echo "$WARN"
+    else
+        echo "$OK"
+    fi
+}
+
+get_cpu_temp() {
+    local temp=""
+
+    if command -v sensors >/dev/null 2>&1; then
+        temp="$(
+            sensors 2>/dev/null |
+            awk '
+                /Package id 0:/ {
+                    gsub(/[+°C]/, "", $4)
+                    print int($4)
+                    exit
+                }
+                /Tctl:/ {
+                    gsub(/[+°C]/, "", $2)
+                    print int($2)
+                    exit
+                }
+            '
+        )"
+    fi
+
+    if [[ -z "$temp" ]]; then
+        temp="$(
+            for zone in /sys/class/thermal/thermal_zone*/temp; do
+                [[ -r "$zone" ]] || continue
+                value="$(cat "$zone" 2>/dev/null)"
+                [[ "$value" =~ ^[0-9]+$ ]] || continue
+
+                if (( value > 1000 )); then
+                    echo $((value / 1000))
+                else
+                    echo "$value"
+                fi
+            done |
+            sort -nr |
+            head -1
+        )"
+    fi
+
+    echo "${temp:-0}"
+}
+
+show_health() {
+    clear
+    line
+    echo "             THINKPAD P1 GEN 7 - SYSTEM HEALTH"
+    line
+    echo
+
+    local cpu_temp
+    cpu_temp="$(get_cpu_temp)"
+
+    if (( cpu_temp > 0 )); then
+        printf "%-22s %s  %s °C\n" \
+            "CPU:" \
+            "$(temperature_status "$cpu_temp" 85 95)" \
+            "$cpu_temp"
+    else
+        printf "%-22s %s\n" "CPU:" "$WARN Temperature unavailable"
+    fi
+
+    if command -v nvidia-smi >/dev/null 2>&1; then
+        local gpu_data gpu_temp gpu_power gpu_util
+
+        gpu_data="$(
+            nvidia-smi \
+                --query-gpu=temperature.gpu,power.draw,utilization.gpu \
+                --format=csv,noheader,nounits 2>/dev/null |
+            head -1
+        )"
+
+        if [[ -n "$gpu_data" ]]; then
+            IFS=',' read -r gpu_temp gpu_power gpu_util <<< "$gpu_data"
+            gpu_temp="$(xargs <<< "$gpu_temp")"
+            gpu_power="$(xargs <<< "$gpu_power")"
+            gpu_util="$(xargs <<< "$gpu_util")"
+
+            printf "%-22s %s  %s °C, %s W, %s %% usage\n" \
+                "NVIDIA:" \
+                "$(temperature_status "${gpu_temp:-0}" 75 87)" \
+                "${gpu_temp:-N/A}" \
+                "${gpu_power:-N/A}" \
+                "${gpu_util:-N/A}"
+        else
+            printf "%-22s %s\n" "NVIDIA:" "$INFO Unavailable or suspended"
+        fi
+    else
+        printf "%-22s %s\n" "NVIDIA:" "$INFO nvidia-smi unavailable"
+    fi
+
+    local mem_total mem_used mem_available mem_pct
+    read -r mem_total mem_used mem_available < <(
+        free -b | awk '/^Mem:/ {print $2, $3, $7}'
+    )
+
+    mem_pct=$((mem_used * 100 / mem_total))
+
+    printf "%-22s %s  %s %% used, %s available\n" \
+        "RAM:" \
+        "$OK" \
+        "$mem_pct" \
+        "$(numfmt --to=iec-i --suffix=B "$mem_available")"
+
+    local swap_total swap_used swap_pct
+    read -r swap_total swap_used < <(
+        free -b | awk '/^Swap:/ {print $2, $3}'
+    )
+
+    if (( swap_total > 0 )); then
+        swap_pct=$((swap_used * 100 / swap_total))
+    else
+        swap_pct=0
+    fi
+
+    printf "%-22s %s  %s %% used\n" "ZRAM/Swap:" "$OK" "$swap_pct"
+
+    echo
+    line
+    echo "STORAGE"
+    line
+
+    df -hT / /home /mnt/Data 2>/dev/null |
+    awk '
+        NR == 1 {
+            printf "%-18s %-8s %-10s %-10s\n",
+                   "Mount", "Type", "Usage", "Available"
+            next
+        }
+        !seen[$7]++ {
+            printf "%-18s %-8s %-10s %-10s\n",
+                   $7, $2, $6, $5
+        }
+    '
+
+    echo
+    printf "%-22s %s\n" \
+        "Weekly TRIM:" \
+        "$(systemctl is-active --quiet fstrim.timer && echo "$OK ACTIVE" || echo "$WARN INACTIVE")"
+
+    echo
+    line
+    echo "LAB SERVICES"
+    line
+
+    printf "%-22s %s\n" "Docker:" "$(service_state_health docker.service)"
+    printf "%-22s %s\n" "Containerd:" "$(service_state_health containerd.service)"
+    printf "%-22s %s\n" "Ollama:" "$(service_state_health ollama.service)"
+    printf "%-22s %s\n" "VMware:" "$(service_state_health vmware.service)"
+    printf "%-22s %s\n" "VMware USB:" "$(service_state_health vmware-USBArbitrator.service)"
+    printf "%-22s %s\n" "libvirt QEMU:" "$(service_state_health virtqemud.service)"
+    printf "%-22s %s\n" "libvirt Networks:" "$(service_state_health virtnetworkd.service)"
+
+    echo
+    line
+    echo "SECURITY AND NETWORK"
+    line
+
+    printf "%-22s %s\n" \
+        "Firewalld:" \
+        "$(systemctl is-active --quiet firewalld && echo "$OK ACTIVE" || echo "$FAIL INACTIVE")"
+
+    if command -v getenforce >/dev/null 2>&1; then
+        printf "%-22s %s\n" "SELinux:" "$(getenforce)"
+    fi
+
+    local wifi_interface wifi_zone
+    wifi_interface="$(
+        nmcli -t -f DEVICE,TYPE device status 2>/dev/null |
+        awk -F: '$2=="wifi" {print $1; exit}'
+    )"
+
+    if [[ -n "$wifi_interface" ]]; then
+        wifi_zone="$(firewall-cmd --get-zone-of-interface="$wifi_interface" 2>/dev/null || true)"
+        printf "%-22s %s\n" "WiFi Interface:" "$wifi_interface"
+        printf "%-22s %s\n" "WiFi Zone:" "${wifi_zone:-Not detected}"
+
+        if nmcli -t -f GENERAL.STATE device show "$wifi_interface" 2>/dev/null | grep -q '100'; then
+            printf "%-22s %s\n" "WiFi:" "$OK CONNECTED"
+        else
+            printf "%-22s %s\n" "WiFi:" "$WARN DISCONNECTED"
+        fi
+    else
+        printf "%-22s %s\n" "WiFi:" "$WARN Interface not detected"
+    fi
+
+    echo
+    line
+    echo "BATTERY AND POWER"
+    line
+
+    local battery
+    battery="$(upower -e 2>/dev/null | grep BAT | head -1 || true)"
+
+    if [[ -n "$battery" ]]; then
+        upower -i "$battery" 2>/dev/null |
+        awk -F: '
+            /state:/ {
+                gsub(/^[ \t]+/, "", $2)
+                printf "%-22s %s\n", "State:", $2
+            }
+            /percentage:/ {
+                gsub(/^[ \t]+/, "", $2)
+                printf "%-22s %s\n", "Charge:", $2
+            }
+            /^[[:space:]]*capacity:/ {
+                gsub(/^[ \t]+/, "", $2)
+                printf "%-22s %s\n", "Health:", $2
+            }
+            /charge-cycles:/ {
+                gsub(/^[ \t]+/, "", $2)
+                printf "%-22s %s\n", "Cycles:", $2
+            }
+            /charge-start-threshold:/ {
+                gsub(/^[ \t]+/, "", $2)
+                printf "%-22s %s\n", "Charge Start:", $2
+            }
+            /charge-end-threshold:/ {
+                gsub(/^[ \t]+/, "", $2)
+                printf "%-22s %s\n", "Charge Limit:", $2
+            }
+        '
+    else
+        echo "$WARN Battery not detected"
+    fi
+
+    printf "%-22s %s\n" \
+        "TuneD Profile:" \
+        "$(tuned-adm active 2>/dev/null | sed 's/Current active profile: //')"
+
+    echo
+    line
+    echo "SYNC"
+    line
+
+    if pgrep -x onedrive >/dev/null 2>&1; then
+        printf "%-22s %s\n" "OneDrive:" "$OK RUNNING"
+        printf "%-22s %s\n" "Processes:" "$(pgrep -x onedrive | wc -l)"
+    else
+        printf "%-22s %s\n" "OneDrive:" "$WARN STOPPED"
+    fi
+
+    echo
+    line
+    echo "SUMMARY"
+    line
+
+    echo "$OK Health check completed."
+    echo "This command does not leave a background monitor running."
+    echo
+}
+
+case "${1:-}" in
+    health|status) show_health ;;
+    -h|--help|help|"")
+        echo "Usage:"
+        echo "  labctl health"
+        ;;
+    *)
+        echo "Unknown command: $1"
+        exit 1
+        ;;
+esac

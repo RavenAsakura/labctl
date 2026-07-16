@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+case "$1" in
+    start)
+        sudo systemctl start vmware vmware-USBArbitrator
+        echo "[+] VMware activo"
+        ;;
+    stop)
+        sudo systemctl stop vmware vmware-USBArbitrator
+        echo "[-] VMware detenido"
+        ;;
+    status)
+        systemctl status vmware vmware-USBArbitrator --no-pager
+        ;;
+    *)
+        echo "Uso: lab-vmware {start|stop|status}"
+        exit 1
+        ;;
+esac

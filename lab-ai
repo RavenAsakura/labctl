@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+case "$1" in
+    start)
+        sudo systemctl start ollama
+        systemctl --no-pager --quiet is-active ollama &&
+            echo "[+] Ollama activo"
+        ;;
+    stop)
+        sudo systemctl stop ollama
+        echo "[-] Ollama detenido"
+        ;;
+    status)
+        systemctl status ollama --no-pager
+        ;;
+    *)
+        echo "Uso: lab-ai {start|stop|status}"
+        exit 1
+        ;;
+esac
