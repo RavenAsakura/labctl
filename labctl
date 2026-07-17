@@ -2,7 +2,9 @@
 
 set -uo pipefail
 
-readonly LABCTL_VERSION="2.2.0"
+readonly LABCTL_VERSION="2.3.0-dev"
+readonly LABCTL_REPOSITORY="RavenAsakura/labctl"
+readonly LABCTL_LICENSE="MIT"
 
 SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]:-$0}")"
 SCRIPT_DIR="$(cd -- "$(dirname -- "$SCRIPT_PATH")" && pwd)"
@@ -24,7 +26,8 @@ load_module() {
 }
 
 list_modules() {
-    local module_file module_name
+    local module_file
+    local module_name
     local counter=1
     local -a modules=()
 
@@ -32,7 +35,9 @@ list_modules() {
 
     for module_file in "$MODULES_DIR"/*.sh; do
         module_name="$(basename "$module_file" .sh)"
+
         [[ "$module_name" == "utils" ]] && continue
+
         modules+=("$module_name")
     done
 
@@ -46,8 +51,116 @@ list_modules() {
     while IFS= read -r module_name; do
         [[ -n "$module_name" ]] || continue
         printf '  %2d. %s\n' "$counter" "$module_name"
-        ((counter++))
+        counter=$((counter + 1))
     done < <(printf '%s\n' "${modules[@]}" | sort)
+}
+
+count_modules() {
+    local module_file
+    local module_name
+    local count=0
+
+    shopt -s nullglob
+
+    for module_file in "$MODULES_DIR"/*.sh; do
+        module_name="$(basename "$module_file" .sh)"
+
+        [[ "$module_name" == "utils" ]] && continue
+
+        count=$((count + 1))
+    done
+
+    shopt -u nullglob
+
+    printf '%s\n' "$count"
+}
+
+git_branch() {
+    git -C "$SCRIPT_DIR" branch --show-current 2>/dev/null ||
+        printf 'Unavailable\n'
+}
+
+git_commit() {
+    git -C "$SCRIPT_DIR" rev-parse --short HEAD 2>/dev/null ||
+        printf 'Unavailable\n'
+}
+
+git_latest_tag() {
+    git -C "$SCRIPT_DIR" describe \
+        --tags \
+        --abbrev=0 \
+        2>/dev/null ||
+        printf 'No tags\n'
+}
+
+git_remote() {
+    local remote_url
+
+    remote_url="$(
+        git -C "$SCRIPT_DIR" remote get-url origin 2>/dev/null ||
+        true
+    )"
+
+    case "$remote_url" in
+        git@github.com:*)
+            remote_url="${remote_url#git@github.com:}"
+            remote_url="${remote_url%.git}"
+            printf '%s\n' "$remote_url"
+            ;;
+        https://github.com/*)
+            remote_url="${remote_url#https://github.com/}"
+            remote_url="${remote_url%.git}"
+            printf '%s\n' "$remote_url"
+            ;;
+        "")
+            printf '%s\n' "$LABCTL_REPOSITORY"
+            ;;
+        *)
+            printf '%s\n' "$remote_url"
+            ;;
+    esac
+}
+
+operating_system_name() {
+    if [[ -r /etc/os-release ]]; then
+        . /etc/os-release
+        printf '%s\n' "${PRETTY_NAME:-Unknown}"
+    else
+        printf 'Unknown\n'
+    fi
+}
+
+labctl_about() {
+    local branch
+    local commit
+    local latest_tag
+    local module_count
+    local operating_system
+    local kernel
+    local architecture
+    local repository
+
+    branch="$(git_branch)"
+    commit="$(git_commit)"
+    latest_tag="$(git_latest_tag)"
+    module_count="$(count_modules)"
+    operating_system="$(operating_system_name)"
+    kernel="$(uname -r)"
+    architecture="$(uname -m)"
+    repository="$(git_remote)"
+
+    print_header "LABCTL INFORMATION"
+
+    print_status_value "Version:" "$LABCTL_VERSION" "info"
+    print_status_value "Repository:" "$repository" "normal"
+    print_status_value "Branch:" "$branch" "info"
+    print_status_value "Commit:" "$commit" "normal"
+    print_status_value "Latest Tag:" "$latest_tag" "normal"
+    print_status_value "Modules:" "$module_count" "normal"
+    print_status_value "Operating System:" "$operating_system" "normal"
+    print_status_value "Kernel:" "$kernel" "normal"
+    print_status_value "Architecture:" "$architecture" "normal"
+    print_status_value "License:" "$LABCTL_LICENSE" "normal"
 }
 
 show_help() {
@@ -56,18 +169,26 @@ ThinkPad P1 Gen 7 - Lab Control
 
 Usage:
   labctl health
+  labctl doctor
+  labctl about
+  labctl info
   labctl MODULE ACTION
   labctl modules
   labctl version
   labctl help
 
 General commands:
-  health          Show system health
+  health          Show the quick system health summary
+  doctor          Run a detailed workstation diagnostic
+  about           Show LabCTL and platform information
+  info            Alias for about
   modules         List installed modules
-  version         Show labctl version
+  version         Show LabCTL version
   help            Show this help
 
 Examples:
+  labctl about
+  labctl doctor
   labctl docker status
   labctl gpu status
   labctl network list
@@ -117,20 +238,44 @@ run_module() {
 
 main() {
     local command="${1:-help}"
+
     shift || true
 
     load_module utils || exit 1
 
     case "$command" in
-        health|status) run_health ;;
+        health|status)
+            run_health
+            ;;
+
+        doctor)
+            run_module doctor "$@"
+            ;;
+
+        about|info)
+            labctl_about
+            ;;
+
         modules|list-modules)
             print_header "AVAILABLE MODULES"
             list_modules
             ;;
-        version|-v|--version) echo "labctl $LABCTL_VERSION" ;;
-        help|-h|--help) show_help ;;
-        ai) run_module ollama "$@" ;;
-        *) run_module "$command" "$@" ;;
+
+        version|-v|--version)
+            echo "labctl $LABCTL_VERSION"
+            ;;
+
+        help|-h|--help)
+            show_help
+            ;;
+
+        ai)
+            run_module ollama "$@"
+            ;;
+
+        *)
+            run_module "$command" "$@"
+            ;;
     esac
 }
 
