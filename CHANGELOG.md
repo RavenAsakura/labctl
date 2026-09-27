@@ -19,6 +19,7 @@ All notable changes to LabCTL are documented in this file.
 - Read-only Docker, Libvirt, VMware, and VirtualBox workload inventory page.
 - Caches for package-update checks and workload discovery.
 - Central requirements guide for supported distributions, build dependencies, optional integrations, and permissions.
+- Per-module dependency matrix for Ubuntu/Kubuntu and Fedora.
 - Safe profile previews with `--dry-run`.
 - Optional non-interactive profile application with `--yes` or `-y`.
 - Confirmation before active components are stopped by a profile.
