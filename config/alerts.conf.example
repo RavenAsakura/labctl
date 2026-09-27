@@ -1,0 +1,14 @@
+# LabCTL dashboard alert thresholds.
+# Copy to ~/.config/labctl/alerts.conf and change only the values you need.
+
+cpu_warning=80
+cpu_critical=90
+cpu_hysteresis=3
+gpu_warning=80
+gpu_critical=90
+gpu_hysteresis=3
+storage_warning=80
+storage_critical=90
+storage_hysteresis=2
+updates_warning=1
+firewall_warning=true

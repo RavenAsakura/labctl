@@ -22,6 +22,8 @@ load_module() {
         return 1
     fi
 
+    # Modules are discovered at runtime from the trusted project directory.
+    # shellcheck source=/dev/null
     source "$module_file"
 }
 
@@ -130,6 +132,17 @@ operating_system_name() {
     fi
 }
 
+hardware_value() {
+    local file="${1:?Missing hardware information file}"
+
+    if [[ -r "$file" ]]; then
+        tr -d '\0' < "$file" |
+            sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+    else
+        printf 'Unknown\n'
+    fi
+}
+
 labctl_about() {
     local branch
     local commit
@@ -139,6 +152,8 @@ labctl_about() {
     local kernel
     local architecture
     local repository
+    local hardware_vendor
+    local hardware_model
 
     branch="$(git_branch)"
     commit="$(git_commit)"
@@ -148,6 +163,8 @@ labctl_about() {
     kernel="$(uname -r)"
     architecture="$(uname -m)"
     repository="$(git_remote)"
+    hardware_vendor="$(hardware_value /sys/class/dmi/id/sys_vendor)"
+    hardware_model="$(hardware_value /sys/class/dmi/id/product_name)"
 
     print_header "LABCTL INFORMATION"
 
@@ -160,18 +177,78 @@ labctl_about() {
     print_status_value "Operating System:" "$operating_system" "normal"
     print_status_value "Kernel:" "$kernel" "normal"
     print_status_value "Architecture:" "$architecture" "normal"
+    print_status_value "Hardware Vendor:" "$hardware_vendor" "normal"
+    print_status_value "Hardware Model:" "$hardware_model" "normal"
     print_status_value "License:" "$LABCTL_LICENSE" "normal"
+}
+
+
+show_profiles_summary() {
+    load_module profile || return 1
+
+    print_header "LABCTL CONFIGURATION"
+
+    echo "Power selectors:"
+    printf "  %-10s %s\n" "work" "balanced"
+    printf "  %-10s %s\n" "travel" "power-saver"
+
+    echo
+    echo "Components:"
+    printf "  %-10s %s\n" "qemu" "QEMU / Libvirt"
+    printf "  %-10s %s\n" "docker" "Docker / Containerd"
+    printf "  %-10s %s\n" "vmware" "VMware Workstation"
+    printf "  %-10s %s\n" "vbox" "VirtualBox"
+    printf "  %-10s %s\n" "ai" "Ollama"
+
+    echo
+    print_status_value \
+        "Current configuration:" \
+        "$(profile_saved_name)" \
+        "info"
+
+    echo
+    echo "Examples:"
+    echo "  labctl work"
+    echo "  labctl work vmware"
+    echo "  labctl work qemu docker"
+    echo "  labctl travel"
+    echo "  labctl travel qemu"
+    echo "  labctl qemu"
+    echo "  labctl qemu vmware"
+    echo "  labctl qemu vmware docker"
+    echo "  labctl docker ai"
+
+    echo
+    echo "Status:"
+    echo "  labctl profile status"
+
+    echo
+    echo "Safety:"
+    echo "  Add --dry-run to preview changes"
+    echo "  Add --yes for intentional non-interactive use"
+
+    echo
+    echo "Module controls:"
+    echo "  labctl qemu status"
+    echo "  labctl docker status"
+    echo "  labctl vmware status"
+    echo "  labctl virtualbox status"
+
+    echo
+    echo "For complete help:"
+    echo "  labctl help"
 }
 
 show_help() {
     cat <<'HELP'
-ThinkPad P1 Gen 7 - Lab Control
+LabCTL - Workstation and Lab Control
 
 Usage:
   labctl health
   labctl doctor
   labctl about
   labctl info
+  labctl [work|travel] [COMPONENT...] [--dry-run|--yes]
   labctl MODULE ACTION
   labctl modules
   labctl version
@@ -196,6 +273,8 @@ Examples:
   labctl vmware status
   labctl ollama status
   labctl libvirt status
+  labctl qemu backend
+  labctl work qemu docker --dry-run
 HELP
 
     echo
@@ -237,11 +316,64 @@ run_module() {
 }
 
 main() {
-    local command="${1:-help}"
+    local command="${1:-profiles}"
 
     shift || true
 
     load_module utils || exit 1
+
+    #
+    # Combinable LabCTL configuration.
+    #
+    # Examples:
+    #   labctl work
+    #   labctl work vmware
+    #   labctl qemu vmware
+    #   labctl qemu vmware docker
+    #
+    # Module actions such as:
+    #   labctl docker status
+    #   labctl vmware status
+    # are excluded because "status" is not a configuration token.
+    #
+    local -a config_tokens=("$command" "$@")
+    local token
+    local configuration_request=1
+
+    for token in "${config_tokens[@]}"; do
+        case "$token" in
+            work|travel|qemu|docker|vmware|vbox|ai)
+                ;;
+            --dry-run|--yes|-y)
+                ;;
+            *)
+                configuration_request=0
+                break
+                ;;
+        esac
+    done
+
+    if (( configuration_request )); then
+        run_module profile "${config_tokens[@]}"
+        return
+    fi
+
+    if [[ "$command" =~ ^(qemu|docker|vmware|vbox|ai)$ ]]; then
+        local -a components=("$command" "$@")
+        local item
+
+        for item in "${components[@]}"; do
+            if [[ ! "$item" =~ ^(qemu|docker|vmware|vbox|ai)$ ]]; then
+                components=()
+                break
+            fi
+        done
+
+        if (( ${#components[@]} > 0 )); then
+            run_module profile "${components[@]}"
+            return
+        fi
+    fi
 
     case "$command" in
         health|status)
@@ -265,12 +397,75 @@ main() {
             echo "labctl $LABCTL_VERSION"
             ;;
 
+        profiles)
+            show_profiles_summary
+            ;;
+
         help|-h|--help)
             show_help
             ;;
 
+        work|travel)
+            run_module profile "$command" "$@"
+            ;;
+
+        vbox)
+            run_module profile vbox "$@"
+            ;;
+
+        docker)
+            if [[ "${1:-}" =~ ^(start|stop|restart|status|ps|logs|restart-container|help|-h|--help)$ ]]; then
+                run_module docker "$@"
+            else
+                run_module profile docker "$@"
+            fi
+            ;;
+
+        vmware)
+            if [[ "${1:-}" =~ ^(start|stop|restart|status|help|-h|--help)$ ]]; then
+                run_module vmware "$@"
+            else
+                run_module profile vmware "$@"
+            fi
+            ;;
+
+        virtualbox)
+            run_module virtualbox "$@"
+            ;;
+
         ai)
-            run_module ollama "$@"
+            if [[ "${1:-}" =~ ^(start|stop|restart|status|help|-h|--help)$ ]]; then
+                run_module ollama "$@"
+            else
+                run_module profile ai "$@"
+            fi
+            ;;
+
+        qemu)
+            case "${1:-}" in
+                status)
+                    run_module libvirt status
+                    ;;
+                start)
+                    run_module libvirt start
+                    ;;
+                stop)
+                    run_module libvirt stop
+                    ;;
+                restart)
+                    run_module libvirt restart
+                    ;;
+                backend)
+                    run_module libvirt backend
+                    ;;
+                help|-h|--help)
+                    run_module libvirt help
+                    ;;
+                *)
+                    print_error "Unknown QEMU action: ${1:-}"
+                    return 1
+                    ;;
+            esac
             ;;
 
         *)

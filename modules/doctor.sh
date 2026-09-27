@@ -18,7 +18,7 @@ Result levels:
 
 Checks:
   - Failed system and user services
-  - Firewalld and SELinux
+  - UFW/Firewalld and AppArmor/SELinux
   - Battery health and charge thresholds
   - Docker, VMware, Ollama, and libvirt state
   - Running virtual machines
@@ -26,7 +26,7 @@ Checks:
   - NVIDIA temperature, usage, power, and runtime PM
   - Filesystem usage
   - Weekly TRIM
-  - Available Fedora package updates
+  - Available APT or DNF package updates
 
 This module does not modify the system.
 HELP
@@ -106,14 +106,40 @@ doctor_check_failed_services() {
 }
 
 doctor_check_security() {
-    if service_is_active firewalld.service; then
-        doctor_pass "Firewalld is active."
-    else
-        doctor_failure "Firewalld is inactive."
-        doctor_recommend "Start Firewalld and review its active zones."
+    local ufw_enabled="no"
+
+    if command_exists ufw &&
+       [[ -r /etc/ufw/ufw.conf ]] &&
+       grep -Eq '^[[:space:]]*ENABLED=yes([[:space:]]|$)' /etc/ufw/ufw.conf; then
+        ufw_enabled="yes"
     fi
 
-    if command_exists getenforce; then
+    if [[ "$ufw_enabled" == "yes" ]]; then
+        doctor_pass "UFW is enabled."
+    elif command_exists firewall-cmd && service_is_active firewalld.service; then
+        doctor_pass "Firewalld is active."
+    elif command_exists ufw; then
+        doctor_failure "UFW is disabled."
+        doctor_recommend "Review UFW rules and enable it with: sudo ufw enable"
+    elif command_exists firewall-cmd; then
+        doctor_failure "Firewalld is inactive."
+        doctor_recommend "Start Firewalld and review its active zones."
+    else
+        doctor_warning "No supported firewall frontend was detected."
+        doctor_recommend "Install and configure UFW or Firewalld."
+    fi
+
+    if [[ -r /sys/module/apparmor/parameters/enabled ]] &&
+       grep -qi '^Y' /sys/module/apparmor/parameters/enabled; then
+        doctor_pass "AppArmor is enabled."
+    elif command_exists aa-status; then
+        if aa-status --enabled >/dev/null 2>&1; then
+            doctor_pass "AppArmor is enabled."
+        else
+            doctor_failure "AppArmor is disabled."
+            doctor_recommend "Review the AppArmor service and kernel configuration."
+        fi
+    elif command_exists getenforce; then
         case "$(getenforce)" in
             Enforcing)
                 doctor_pass "SELinux is enforcing."
@@ -133,7 +159,7 @@ doctor_check_security() {
                 ;;
         esac
     else
-        doctor_info "getenforce is unavailable."
+        doctor_warning "Neither AppArmor nor SELinux was detected."
     fi
 }
 
@@ -257,10 +283,14 @@ doctor_check_lab_services() {
         return 0
     fi
 
-    running_vms="$(
-        sudo virsh list --name 2>/dev/null |
-        sed '/^[[:space:]]*$/d'
-    )"
+    if ! running_vms="$(
+        virsh -c qemu:///system list --name 2>/dev/null |
+            sed '/^[[:space:]]*$/d'
+    )"; then
+        doctor_warning "Libvirt virtual machines could not be queried as the current user."
+        doctor_recommend "Add the user to the libvirt group and start a new session."
+        return 0
+    fi
 
     if [[ -n "$running_vms" ]]; then
         doctor_info "Running libvirt virtual machines:"
@@ -391,6 +421,27 @@ doctor_check_storage() {
     local filesystem
     local usage
     local percentage
+    local target
+    local filesystem_type
+    local -a targets=(/)
+
+    if [[ -d "${HOME:-}" ]]; then
+        targets+=("$HOME")
+    fi
+
+    if command_exists findmnt; then
+        while read -r target filesystem_type; do
+            case "$filesystem_type" in
+                squashfs|iso9660) continue ;;
+            esac
+
+            case "$target" in
+                /mnt/*|/media/*|/run/media/*)
+                    targets+=("$target")
+                    ;;
+            esac
+        done < <(findmnt --real --raw --noheadings --output TARGET,FSTYPE 2>/dev/null)
+    fi
 
     while read -r filesystem usage; do
         [[ -n "$filesystem" ]] || continue
@@ -411,7 +462,7 @@ doctor_check_storage() {
                 "$filesystem usage is ${percentage}%."
         fi
     done < <(
-        df -P / /home /mnt/Data 2>/dev/null |
+        df -P "${targets[@]}" 2>/dev/null |
         awk 'NR > 1 && !seen[$6]++ {
             print $6, $5
         }'
@@ -428,34 +479,55 @@ doctor_check_storage() {
 
 doctor_check_updates() {
     local update_count
+    local package_manager=""
 
-    if ! command_exists dnf; then
-        doctor_info "DNF is unavailable."
-        return 0
+    if command_exists apt; then
+        package_manager="apt"
+    elif command_exists dnf; then
+        package_manager="dnf"
     fi
 
-    print_info "Checking Fedora package updates..."
-
-    update_count="$(
-        dnf check-upgrade \
-            --quiet \
-            --refresh \
-            2>/dev/null |
-        awk '
-            /^[[:alnum:]_.+-]+[[:space:]]+[[:alnum:]_.+-]+[[:space:]]+/ {
-                count++
-            }
-            END {
-                print count + 0
-            }
-        '
-    )"
+    case "$package_manager" in
+        apt)
+            print_info "Checking cached APT package updates..."
+            update_count="$(
+                apt list --upgradable 2>/dev/null |
+                    awk 'NR > 1 {count++} END {print count + 0}'
+            )"
+            ;;
+        dnf)
+            print_info "Checking Fedora package updates..."
+            update_count="$(
+                dnf check-upgrade \
+                    --quiet \
+                    --refresh \
+                    2>/dev/null |
+                awk '
+                    /^[[:alnum:]_.+-]+[[:space:]]+[[:alnum:]_.+-]+[[:space:]]+/ {
+                        count++
+                    }
+                    END {
+                        print count + 0
+                    }
+                '
+            )"
+            ;;
+        *)
+            doctor_info "No supported package manager was detected."
+            return 0
+            ;;
+    esac
 
     if (( update_count == 0 )); then
-        doctor_pass "No Fedora package updates were detected."
+        doctor_pass "No package updates were detected."
     else
-        doctor_info "$update_count Fedora package update(s) available."
-        doctor_recommend "Review available updates with: dnf check-upgrade"
+        doctor_info "$update_count package update(s) available."
+
+        if [[ "$package_manager" == "apt" ]]; then
+            doctor_recommend "Refresh and review updates with: sudo apt update && apt list --upgradable"
+        else
+            doctor_recommend "Review available updates with: dnf check-upgrade"
+        fi
     fi
 }
 

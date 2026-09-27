@@ -15,7 +15,7 @@ HELP
 ollama_start() {
     print_info "Starting Ollama..."
 
-    if ! sudo systemctl start ollama.service; then
+    if ! run_privileged systemctl start ollama.service; then
         print_error "Ollama could not be started."
         return 1
     fi
@@ -31,7 +31,7 @@ ollama_start() {
 ollama_stop() {
     print_info "Stopping Ollama..."
 
-    sudo systemctl stop ollama.service
+    run_privileged systemctl stop ollama.service
 
     if service_is_active ollama.service; then
         print_error "Ollama is still active."
@@ -44,7 +44,7 @@ ollama_stop() {
 ollama_restart() {
     print_info "Restarting Ollama..."
 
-    sudo systemctl restart ollama.service
+    run_privileged systemctl restart ollama.service
 
     if service_is_active ollama.service; then
         print_ok "Ollama restarted successfully."

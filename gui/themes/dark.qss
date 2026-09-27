@@ -1,0 +1,189 @@
+QMainWindow,
+QWidget#contentArea {
+    background-color: #0f172a;
+    color: #e2e8f0;
+    font-family: "Inter", "Noto Sans", sans-serif;
+    font-size: 14px;
+}
+
+QScrollArea#dashboardScroll,
+QScrollArea#dashboardScroll > QWidget > QWidget {
+    background-color: #0f172a;
+    border: none;
+}
+
+QFrame#sidebar {
+    background-color: #111827;
+    border-right: 1px solid #263244;
+}
+
+QLabel#appTitle {
+    color: #ffffff;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+QLabel#appSubtitle,
+QLabel#pageSubtitle,
+QLabel#metricSubtitle,
+QLabel#pageDescription,
+QLabel#versionLabel {
+    color: #94a3b8;
+}
+
+QPushButton#navigationButton {
+    padding: 10px 14px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #cbd5e1;
+    text-align: left;
+    font-weight: 500;
+}
+
+QPushButton#navigationButton:hover {
+    background-color: #1e293b;
+}
+
+QPushButton#navigationButton:checked {
+    background-color: #1d4ed8;
+    color: #ffffff;
+}
+
+QLabel#pageTitle {
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+QLabel#healthBadge {
+    padding: 8px 14px;
+    border-radius: 8px;
+    background-color: #153e35;
+    color: #6ee7b7;
+    font-weight: 600;
+}
+
+QPushButton#primaryButton {
+    padding: 8px 18px;
+    border: 1px solid #3b82f6;
+    border-radius: 8px;
+    background-color: #2563eb;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+QPushButton#primaryButton:hover {
+    background-color: #3b82f6;
+}
+
+QPushButton#primaryButton:disabled {
+    background-color: #334155;
+    color: #94a3b8;
+}
+
+QPushButton#secondaryButton,
+QPushButton#actionButton,
+QPushButton#profileButton {
+    padding: 7px 12px;
+    border: 1px solid #475569;
+    border-radius: 7px;
+    background-color: #1e293b;
+    color: #e2e8f0;
+    font-weight: 500;
+}
+
+QPushButton#secondaryButton:hover,
+QPushButton#actionButton:hover,
+QPushButton#profileButton:hover {
+    background-color: #334155;
+}
+
+QPushButton#secondaryButton:disabled,
+QPushButton#actionButton:disabled,
+QPushButton#profileButton:disabled {
+    color: #64748b;
+    background-color: #172033;
+}
+
+QFrame#metricCard,
+QFrame#panel {
+    background-color: #172033;
+    border: 1px solid #273449;
+    border-radius: 12px;
+}
+
+QLabel#metricTitle,
+QLabel#panelTitle,
+QLabel#serviceName {
+    color: #f8fafc;
+    font-weight: 600;
+}
+
+QLabel#metricValue {
+    color: #60a5fa;
+    font-size: 23px;
+    font-weight: 700;
+}
+
+QLabel#statusValue {
+    color: #60a5fa;
+    font-weight: 700;
+}
+
+QLabel#infoValue {
+    color: #cbd5e1;
+}
+
+QFrame#alertsPanel {
+    background-color: #2b2113;
+    border: 1px solid #854d0e;
+    border-radius: 10px;
+}
+
+QLabel#alertsText {
+    color: #fbbf24;
+}
+
+QCheckBox#autoRefreshCheck {
+    color: #94a3b8;
+    spacing: 7px;
+}
+
+QLabel#serviceStatus {
+    padding: 5px 10px;
+    border-radius: 7px;
+    background-color: #334155;
+    color: #cbd5e1;
+}
+
+QPlainTextEdit#commandOutput {
+    border: 1px solid #273449;
+    border-radius: 8px;
+    background-color: #0b1120;
+    color: #d1fae5;
+    padding: 10px;
+    font-family: "JetBrains Mono", "Noto Sans Mono", monospace;
+}
+
+MetricHistoryWidget#historyChart {
+    background-color: #0f172a;
+    border: 1px solid #273449;
+    border-radius: 8px;
+}
+
+QTreeWidget#workloadsTree {
+    background-color: #0b1120;
+    alternate-background-color: #111827;
+    color: #e2e8f0;
+    border: 1px solid #273449;
+    border-radius: 8px;
+}
+
+QTreeWidget#workloadsTree QHeaderView::section {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border: none;
+    padding: 8px;
+    font-weight: 600;
+}

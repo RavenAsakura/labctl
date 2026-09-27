@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="icons/labctl.svg">icons/labctl.svg</file>
+        <file alias="themes/dark.qss">../themes/dark.qss</file>
+    </qresource>
+</RCC>

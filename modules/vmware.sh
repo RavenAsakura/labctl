@@ -14,7 +14,7 @@ HELP
 vmware_start() {
     print_info "Starting VMware..."
 
-    sudo systemctl start \
+    run_privileged systemctl start \
         vmware.service \
         vmware-USBArbitrator.service
 
@@ -35,7 +35,7 @@ vmware_start() {
 vmware_stop() {
     print_info "Stopping VMware..."
 
-    sudo systemctl stop \
+    run_privileged systemctl stop \
         vmware.service \
         vmware-USBArbitrator.service
 
@@ -50,7 +50,7 @@ vmware_stop() {
 vmware_restart() {
     print_info "Restarting VMware..."
 
-    sudo systemctl restart \
+    run_privileged systemctl restart \
         vmware.service \
         vmware-USBArbitrator.service
 

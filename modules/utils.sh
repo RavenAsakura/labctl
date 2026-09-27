@@ -162,6 +162,40 @@ require_command() {
     fi
 }
 
+run_privileged() {
+    local executable="${1:-}"
+
+    if [[ -z "$executable" ]]; then
+        print_error "No privileged command was provided."
+        return 1
+    fi
+
+    if (( EUID == 0 )); then
+        "$@"
+        return
+    fi
+
+    if [[ "${LABCTL_USE_PKEXEC:-0}" == "1" ]]; then
+        if ! command_exists pkexec; then
+            print_error "PolicyKit is required for graphical privileged operations."
+            return 1
+        fi
+
+        executable="$(command -v "$executable" 2>/dev/null || printf '%s' "$executable")"
+        shift
+        pkexec "$executable" "$@"
+        return
+    fi
+
+    if command_exists sudo; then
+        sudo "$@"
+        return
+    fi
+
+    print_error "Neither sudo nor PolicyKit is available."
+    return 1
+}
+
 confirm_action() {
     local message="${1:-Continue?}"
     local answer=""

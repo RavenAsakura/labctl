@@ -1,0 +1,500 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1280</width>
+    <height>800</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>1100</width>
+    <height>700</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>LabCTL</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QHBoxLayout" name="rootLayout">
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+
+    <item>
+     <widget class="QFrame" name="sidebarFrame">
+      <property name="minimumSize">
+       <size>
+        <width>220</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>220</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Shape::NoFrame</enum>
+      </property>
+      <layout class="QVBoxLayout" name="sidebarLayout">
+       <property name="leftMargin">
+        <number>16</number>
+       </property>
+       <property name="topMargin">
+        <number>20</number>
+       </property>
+       <property name="rightMargin">
+        <number>16</number>
+       </property>
+       <property name="bottomMargin">
+        <number>20</number>
+       </property>
+
+       <item>
+        <widget class="QLabel" name="brandLabel">
+         <property name="text">
+          <string>LabCTL</string>
+         </property>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QLabel" name="brandSubtitleLabel">
+         <property name="text">
+          <string>Control Center</string>
+         </property>
+        </widget>
+       </item>
+
+       <item>
+        <spacer name="brandSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>24</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+
+       <item>
+        <widget class="QPushButton" name="dashboardButton">
+         <property name="text">
+          <string>Dashboard</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QPushButton" name="monitorButton">
+         <property name="text">
+          <string>Monitor</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QPushButton" name="servicesButton">
+         <property name="text">
+          <string>Services</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QPushButton" name="networkButton">
+         <property name="text">
+          <string>Network</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QPushButton" name="storageButton">
+         <property name="text">
+          <string>Storage</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QPushButton" name="reportsButton">
+         <property name="text">
+          <string>Reports</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+
+       <item>
+        <spacer name="sidebarSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>300</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+
+       <item>
+        <widget class="QPushButton" name="settingsButton">
+         <property name="text">
+          <string>Settings</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+
+    <item>
+     <widget class="QFrame" name="contentFrame">
+      <property name="frameShape">
+       <enum>QFrame::Shape::NoFrame</enum>
+      </property>
+      <layout class="QVBoxLayout" name="contentLayout">
+       <property name="spacing">
+        <number>20</number>
+       </property>
+       <property name="leftMargin">
+        <number>28</number>
+       </property>
+       <property name="topMargin">
+        <number>24</number>
+       </property>
+       <property name="rightMargin">
+        <number>28</number>
+       </property>
+       <property name="bottomMargin">
+        <number>24</number>
+       </property>
+
+       <item>
+        <layout class="QHBoxLayout" name="headerLayout">
+         <item>
+          <layout class="QVBoxLayout" name="headerTextLayout">
+           <item>
+            <widget class="QLabel" name="pageTitleLabel">
+             <property name="text">
+              <string>Dashboard</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="pageSubtitleLabel">
+             <property name="text">
+              <string>Linux workstation overview</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+
+         <item>
+          <spacer name="headerSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>300</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+
+         <item>
+          <widget class="QLabel" name="healthBadgeLabel">
+           <property name="text">
+            <string>System Healthy</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+
+       <item>
+        <layout class="QGridLayout" name="metricsGrid">
+         <property name="horizontalSpacing">
+          <number>16</number>
+         </property>
+         <property name="verticalSpacing">
+          <number>16</number>
+         </property>
+
+         <item row="0" column="0">
+          <widget class="QFrame" name="cpuCard">
+           <layout class="QVBoxLayout" name="cpuCardLayout">
+            <item>
+             <widget class="QLabel" name="cpuTitleLabel">
+              <property name="text">
+               <string>CPU</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="cpuValueLabel">
+              <property name="text">
+               <string>--%</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="cpuStatusLabel">
+              <property name="text">
+               <string>Waiting for data</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+
+         <item row="0" column="1">
+          <widget class="QFrame" name="memoryCard">
+           <layout class="QVBoxLayout" name="memoryCardLayout">
+            <item>
+             <widget class="QLabel" name="memoryTitleLabel">
+              <property name="text">
+               <string>Memory</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="memoryValueLabel">
+              <property name="text">
+               <string>--%</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="memoryStatusLabel">
+              <property name="text">
+               <string>Waiting for data</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+
+         <item row="0" column="2">
+          <widget class="QFrame" name="gpuCard">
+           <layout class="QVBoxLayout" name="gpuCardLayout">
+            <item>
+             <widget class="QLabel" name="gpuTitleLabel">
+              <property name="text">
+               <string>GPU</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="gpuValueLabel">
+              <property name="text">
+               <string>--%</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="gpuStatusLabel">
+              <property name="text">
+               <string>Waiting for data</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+
+         <item row="0" column="3">
+          <widget class="QFrame" name="batteryCard">
+           <layout class="QVBoxLayout" name="batteryCardLayout">
+            <item>
+             <widget class="QLabel" name="batteryTitleLabel">
+              <property name="text">
+               <string>Battery</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="batteryValueLabel">
+              <property name="text">
+               <string>--%</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="batteryStatusLabel">
+              <property name="text">
+               <string>Waiting for data</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </item>
+
+       <item>
+        <widget class="QFrame" name="servicesPanel">
+         <layout class="QVBoxLayout" name="servicesPanelLayout">
+          <item>
+           <widget class="QLabel" name="servicesTitleLabel">
+            <property name="text">
+             <string>Services</string>
+            </property>
+           </widget>
+          </item>
+
+          <item>
+           <layout class="QGridLayout" name="servicesGrid">
+            <item row="0" column="0">
+             <widget class="QLabel" name="dockerLabel">
+              <property name="text">
+               <string>Docker</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="dockerStatusLabel">
+              <property name="text">
+               <string>Unknown</string>
+              </property>
+             </widget>
+            </item>
+
+            <item row="1" column="0">
+             <widget class="QLabel" name="vmwareLabel">
+              <property name="text">
+               <string>VMware</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLabel" name="vmwareStatusLabel">
+              <property name="text">
+               <string>Unknown</string>
+              </property>
+             </widget>
+            </item>
+
+            <item row="2" column="0">
+             <widget class="QLabel" name="libvirtLabel">
+              <property name="text">
+               <string>Libvirt</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLabel" name="libvirtStatusLabel">
+              <property name="text">
+               <string>Unknown</string>
+              </property>
+             </widget>
+            </item>
+
+            <item row="3" column="0">
+             <widget class="QLabel" name="onedriveLabel">
+              <property name="text">
+               <string>OneDrive</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QLabel" name="onedriveStatusLabel">
+              <property name="text">
+               <string>Unknown</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+
+       <item>
+        <widget class="QFrame" name="outputPanel">
+         <layout class="QVBoxLayout" name="outputPanelLayout">
+          <item>
+           <widget class="QLabel" name="outputTitleLabel">
+            <property name="text">
+             <string>Command Output</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPlainTextEdit" name="commandOutput">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="plainText">
+             <string>LabCTL GUI initialized.</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

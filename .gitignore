@@ -1,17 +1,26 @@
 # Backups
 backups/
+*.backup-*
+*.bak
+
+# Build output
+/gui/build/
+/gui/.qtcreator/
+compile_commands.json
+CMakeUserPresets.json
 
 # Generated reports
 reports/*
 !reports/.gitkeep
-
 # Temporary files
 *.log
 *.tmp
 *.swp
 *~
 .DS_Store
-
 # Editor settings
 .vscode/
 .idea/
+
+# Accidental shell output files
+/tatus --short
